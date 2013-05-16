@@ -15,9 +15,7 @@
  *
  */
 
-#include <asm/cputime.h>
 #include <linux/kernel.h>
-#include <linux/kernel_stat.h>
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/notifier.h>
@@ -25,7 +23,6 @@
 #include <linux/delay.h>
 #include <linux/interrupt.h>
 #include <linux/spinlock.h>
-#include <linux/tick.h>
 #include <linux/device.h>
 #include <linux/slab.h>
 #include <linux/cpu.h>
@@ -144,41 +141,6 @@ void disable_cpufreq(void)
 }
 static LIST_HEAD(cpufreq_governor_list);
 static DEFINE_MUTEX(cpufreq_governor_mutex);
-
-static inline u64 get_cpu_idle_time_jiffy(unsigned int cpu, u64 *wall)
-{
-	u64 idle_time;
-	u64 cur_wall_time;
-	u64 busy_time;
-
-	cur_wall_time = jiffies64_to_cputime64(get_jiffies_64());
-
-	busy_time = kcpustat_cpu(cpu).cpustat[CPUTIME_USER];
-	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_SYSTEM];
-	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_IRQ];
-	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_SOFTIRQ];
-	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_STEAL];
-	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_NICE];
-
-	idle_time = cur_wall_time - busy_time;
-	if (wall)
-		*wall = cputime_to_usecs(cur_wall_time);
-
-	return cputime_to_usecs(idle_time);
-}
-
-u64 get_cpu_idle_time(unsigned int cpu, u64 *wall, int io_busy)
-{
-	u64 idle_time = get_cpu_idle_time_us(cpu, io_busy ? wall : NULL);
-
-	if (idle_time == -1ULL)
-		return get_cpu_idle_time_jiffy(cpu, wall);
-	else if (!io_busy)
-		idle_time += get_cpu_iowait_time_us(cpu, wall);
-
-	return idle_time;
-}
-EXPORT_SYMBOL_GPL(get_cpu_idle_time);
 
 static struct cpufreq_policy *__cpufreq_cpu_get(unsigned int cpu, int sysfs)
 {
@@ -1552,108 +1514,7 @@ int cpufreq_unregister_notifier(struct notifier_block *nb, unsigned int list)
 }
 EXPORT_SYMBOL(cpufreq_unregister_notifier);
 
-#if defined(CONFIG_LGE_LOW_BATT_LIMIT)
-#define BOOT_ARGS "chosen"
-static long	soc = 0;
-#include <linux/of.h>
 
-static int parse_batt_soc_bootarg(void)
-{
-	struct device_node *chosen_node;
-	static const char *cmd_line;
-	int rc = 0, len = 0, name_len = 0, cmd_len = 0;
-	char batt_soc[3] = {0,};
-	char *sidx, *eidx;
-	chosen_node = of_find_node_by_name(NULL, BOOT_ARGS);
-	if (!chosen_node) {
-		pr_err("%s: get chosen node failed\n", __func__);
-		return -ENODEV;
-	}
-
-	cmd_line = of_get_property(chosen_node, "bootargs", &len);
-	if (!cmd_line || len <= 0) {
-		pr_err("%s: get bootargs failed\n", __func__);
-		return -ENODEV;
-	}
-
-	name_len = strlen("batt.soc=");
-	cmd_len = strlen(cmd_line);
-	sidx = strnstr(cmd_line, "batt.soc=", cmd_len);
-	if (!sidx) {
-		pr_err("failed batt soc from boot command\n");
-		return -ENODEV;
-	}
-	sidx += name_len;
-
-	eidx = strnstr(sidx, " ", 10);
-
-	if (!eidx) {
-		eidx = sidx + strlen(sidx) + 1;
-	}
-
-	if (eidx <= sidx) {
-		return -ENODEV;
-	}
-
-	*eidx = 0;
-	len = eidx - sidx + 1;
-	if (len <= 0) {
-		return -ENODEV;
-	}
-
-	strncpy(batt_soc, sidx, strlen(sidx));
-	of_node_put(chosen_node);
-	if (strict_strtol(batt_soc, 10, &soc) != 0) {
-		return -ENODEV;
-	}
-
-	return rc;
-}
-
-#define MAX_CPUS (4)
-#define LOW_BATT_LIMIT_THRESHOLD (5)
-#define PREV_FREQ_INDEX			(2)
-typedef struct low_battery_llimit {
-	struct cpufreq_frequency_table *table;
-	int	last_cpufreq_index;
-}low_batt_limitation;
-static  low_batt_limitation low_battery_limit[MAX_CPUS];
-static int out_low_battery_limit = 0;
-static int set_clear_limit(const char *val, struct kernel_param *kp)
-{
-	int ret = 0;
-	ret = param_set_int(val, kp);
-	if (ret) {
-		pr_err("error setting value %d\n", ret);
-		return ret;
-	}
-	out_low_battery_limit = 1;
-	pr_info(" low batt limitation is clear by thermal\n");
-	return ret;
-}
-
-module_param_call(out_low_battery_limit, set_clear_limit,
-	param_get_int, &out_low_battery_limit, 0644);
-
-static void init_freq_table(void)
-{
-	int cpu_i , freq_i;
-	for( cpu_i = 0 ; cpu_i < MAX_CPUS; cpu_i++) {
-		low_battery_limit[cpu_i].table = 0;
-		low_battery_limit[cpu_i].last_cpufreq_index = 0;
-
-		low_battery_limit[cpu_i].table = cpufreq_frequency_get_table(cpu_i);
-		if(low_battery_limit[cpu_i].table > 0) {
-			for (freq_i = 0; (low_battery_limit[cpu_i].table[freq_i].frequency != CPUFREQ_TABLE_END); freq_i++) {
-				low_battery_limit[cpu_i].last_cpufreq_index = freq_i;
-				if (low_battery_limit[cpu_i].table[freq_i].frequency == CPUFREQ_ENTRY_INVALID) {
-					continue;
-				}
-			}
-		}
-	}
-}
-#endif
 /*********************************************************************
  *                              GOVERNORS                            *
  *********************************************************************/
@@ -1664,11 +1525,14 @@ int __cpufreq_driver_target(struct cpufreq_policy *policy,
 			    unsigned int relation)
 {
 	int retval = -EINVAL;
-#if defined(CONFIG_LGE_LOW_BATT_LIMIT)
-	int update_index = 0;
-#endif
+
 	if (cpufreq_disabled())
 		return -ENODEV;
+<<<<<<< HEAD
+
+	pr_debug("target for CPU %u: %u kHz, relation %u\n", policy->cpu,
+		target_freq, relation);
+=======
 #if defined(CONFIG_LGE_LOW_BATT_LIMIT)
 	if(!low_battery_limit[policy->cpu].table) {
 		init_freq_table();
@@ -1694,6 +1558,7 @@ int __cpufreq_driver_target(struct cpufreq_policy *policy,
 		pr_info("target for CPU %u: %u kHz, soc %ld\n", policy->cpu, target_freq, soc);
 	}
 #endif
+>>>>>>> 800d41e... drivers: cpufreq: Upstream optimizations
 	if (cpu_online(policy->cpu) && cpufreq_driver->target)
 		retval = cpufreq_driver->target(policy, target_freq, relation);
 
@@ -2177,9 +2042,6 @@ static int __init cpufreq_core_init(void)
 
 	cpufreq_global_kobject = kobject_create_and_add("cpufreq", &cpu_subsys.dev_root->kobj);
 	BUG_ON(!cpufreq_global_kobject);
-#if defined(CONFIG_LGE_LOW_BATT_LIMIT)
-	parse_batt_soc_bootarg();
-#endif
 	register_syscore_ops(&cpufreq_syscore_ops);
 
 	return 0;
