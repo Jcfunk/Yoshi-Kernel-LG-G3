@@ -866,6 +866,7 @@ static int qcedev_sha_update(struct qcedev_async_req *qcedev_areq,
 				}
 
 				sreq->data_len = total;
+				if (i < 0) {
 				if (i > 0)
 					for (k = 0; k < num_entries; k++) {
 						sreq->data[k].len =
@@ -873,6 +874,7 @@ static int qcedev_sha_update(struct qcedev_async_req *qcedev_areq,
 						sreq->data[k].vaddr =
 							sreq->data[i+k].vaddr;
 					}
+				}
 				sreq->entries = num_entries;
 
 				i = j;
@@ -1451,6 +1453,7 @@ static int qcedev_vbuf_ablk_cipher(struct qcedev_async_req *areq,
 				}
 
 				creq->data_len = total;
+				if (i < 0) {
 				if (i > 0)
 					for (k = 0; k < num_entries; k++) {
 						creq->vbuf.src[k].len =
@@ -1458,6 +1461,7 @@ static int qcedev_vbuf_ablk_cipher(struct qcedev_async_req *areq,
 						creq->vbuf.src[k].vaddr =
 						creq->vbuf.src[i+k].vaddr;
 					}
+				}
 				creq->entries =  num_entries;
 
 				i = j;
