@@ -11,28 +11,28 @@ clear
 # Resources
 THREAD="-j$(grep -c ^processor /proc/cpuinfo)"
 KERNEL="zImage"
-DEFCONFIG="ak_mako_defconfig"
+DEFCONFIG="cyanogenmod_vs985_defconfig"
 
 # Kernel Details
-BASE_AK_VER="AK"
-VER=".R0.MAKO"
+BASE_AK_VER="Xpresso"
+VER="beta-1.00"
 AK_VER="$BASE_AK_VER$VER"
 
 # Vars
 export LOCALVERSION=~`echo $AK_VER`
-export CROSS_COMPILE=${HOME}/android/AK-Kernel/AK-Linaro/arm-cortex_a15-linux-gnueabihf-linaro_4.9.3-2015.02/bin/arm-cortex_a15-linux-gnueabihf-
+export CROSS_COMPILE=/media/oadam11/oadam11_roms/validus/prebuilts/gcc/linux-x86/arm/arm-eabi-5.3-uber/bin/arm-eabi-
 export ARCH=arm
 export SUBARCH=arm
-export KBUILD_BUILD_USER=CallMeAldy
-export KBUILD_BUILD_HOST=AH-Hub
+export KBUILD_BUILD_USER=oadam11
+export KBUILD_BUILD_HOST=Xpresso-Machine
 
 # Paths
 KERNEL_DIR=`pwd`
-REPACK_DIR="${HOME}/android/AK-Kernel/AK-Mako-AnyKernel2"
-PATCH_DIR="${HOME}/android/AK-Kernel/AK-Mako-AnyKernel2/patch"
-MODULES_DIR="${HOME}/android/AK-Kernel/AK-Mako-AnyKernel2/modules"
-ZIP_MOVE="${HOME}/android//AK-Kernel/AK-Releases"
-ZIMAGE_DIR="${HOME}/android/AK-Kernel/AK-Mako/arch/arm/boot"
+REPACK_DIR=/media/oadam11/oadam11_roms/kernel/out
+PATCH_DIR=/media/oadam11/oadam11_roms/kernel/AnyKernel2/patch
+MODULES_DIR=/media/oadam11/oadam11_roms/kernel/AnyKernel2/modules
+ZIP_MOVE=/media/oadam11/oadam11_roms/kernel/
+ZIMAGE_DIR=/media/oadam11/oadam11_roms/kernel/g3/arch/arm/boot
 
 # Functions
 function clean_all {
