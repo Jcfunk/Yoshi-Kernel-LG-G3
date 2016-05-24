@@ -12,6 +12,7 @@ clear
 THREAD="-j$(grep -c ^processor /proc/cpuinfo)"
 KERNEL="zImage"
 DEFCONFIG="cyanogenmod_vs985_defconfig"
+DTBIMAGE="dtb"
 
 # Kernel Details
 BASE_AK_VER="Xpresso"
@@ -32,7 +33,7 @@ REPACK_DIR=/media/oadam11/oadam11_roms/kernel/out
 PATCH_DIR=/media/oadam11/oadam11_roms/kernel/AnyKernel2/patch
 MODULES_DIR=/media/oadam11/oadam11_roms/kernel/AnyKernel2/modules
 ZIP_MOVE=/media/oadam11/oadam11_roms/kernel/
-ZIMAGE_DIR=/media/oadam11/oadam11_roms/kernel/g3/arch/arm/boot
+ZIMAGE_DIR=/media/oadam11/oadam11_roms/kernel/g3-test/arch/arm/boot
 
 # Functions
 function clean_all {
@@ -56,6 +57,10 @@ function make_kernel {
 function make_modules {
 		rm `echo $MODULES_DIR"/*"`
 		find $KERNEL_DIR -name '*.ko' -exec cp -v {} $MODULES_DIR \;
+}
+
+function make_dtb {
+		$REPACK_DIR/tools/dtbToolCM -2 -o $REPACK_DIR/$DTBIMAGE -s 2048 -p scripts/dtc/ arch/arm/boot/
 }
 
 function make_zip {
@@ -110,6 +115,7 @@ do
 case "$dchoice" in
 	y|Y)
 		make_kernel
+		make_dtb
 		make_modules
 		make_zip
 		break
