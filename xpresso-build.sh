@@ -11,7 +11,7 @@ clear
 # Resources
 THREAD="-j$(grep -c ^processor /proc/cpuinfo)"
 KERNEL="zImage"
-DEFCONFIG="cyanogenmod_vs985_defconfig"
+DEFCONFIG="xpresso_vs985_defconfig"
 DTBIMAGE="dtb"
 
 # Kernel Details
