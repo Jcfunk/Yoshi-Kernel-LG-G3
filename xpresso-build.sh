@@ -33,7 +33,7 @@ REPACK_DIR=/media/oadam11/oadam11_roms/kernel/out
 PATCH_DIR=/media/oadam11/oadam11_roms/kernel/AnyKernel2/patch
 MODULES_DIR=/media/oadam11/oadam11_roms/kernel/AnyKernel2/modules
 ZIP_MOVE=/media/oadam11/oadam11_roms/kernel/
-ZIMAGE_DIR=/media/oadam11/oadam11_roms/kernel/g3-test/arch/arm/boot
+ZIMAGE_DIR=/media/oadam11/oadam11_roms/kernel/g3/arch/arm/boot
 
 # Functions
 function clean_all {
