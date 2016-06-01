@@ -1528,37 +1528,10 @@ int __cpufreq_driver_target(struct cpufreq_policy *policy,
 
 	if (cpufreq_disabled())
 		return -ENODEV;
-<<<<<<< HEAD
 
 	pr_debug("target for CPU %u: %u kHz, relation %u\n", policy->cpu,
 		target_freq, relation);
-=======
-#if defined(CONFIG_LGE_LOW_BATT_LIMIT)
-	if(!low_battery_limit[policy->cpu].table) {
-		init_freq_table();
-	}
-#endif
-	pr_debug("target for CPU %u: %u kHz, relation %u\n", policy->cpu,
-		target_freq, relation);
 
-	if (target_freq == policy->cur)
-		return 0;
-
-#if defined(CONFIG_LGE_LOW_BATT_LIMIT)
-	if(policy->max == target_freq && soc <= LOW_BATT_LIMIT_THRESHOLD
-		&& !out_low_battery_limit) {
-		// limit to previous freq.
-		update_index = (low_battery_limit[policy->cpu].last_cpufreq_index) - PREV_FREQ_INDEX;
-		if (low_battery_limit[policy->cpu].table > 0 &&
-			update_index >= 0) {
-			target_freq = low_battery_limit[policy->cpu].table[--update_index].frequency;
-		} else {
-			pr_info("low_limit_table is still NULL== %u\n",target_freq);
-		}
-		pr_info("target for CPU %u: %u kHz, soc %ld\n", policy->cpu, target_freq, soc);
-	}
-#endif
->>>>>>> 800d41e... drivers: cpufreq: Upstream optimizations
 	if (cpu_online(policy->cpu) && cpufreq_driver->target)
 		retval = cpufreq_driver->target(policy, target_freq, relation);
 
