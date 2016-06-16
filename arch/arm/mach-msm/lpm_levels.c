@@ -94,16 +94,12 @@ static void setup_broadcast_timer(void *arg);
 static int lpm_cpu_callback(struct notifier_block *cpu_nb,
 				unsigned long action, void *hcpu);
 
-#ifdef CONFIG_SHITTY_VARIANT
-static struct notifier_block lpm_cpu_nblk = {
-#else
 static struct notifier_block __refdata lpm_cpu_nblk = {
-#endif
 	.notifier_call = lpm_cpu_callback,
 };
 
 static uint32_t allowed_l2_mode;
-static uint32_t sysfs_dbg_l2_mode __refdata = MSM_SPM_L2_MODE_POWER_COLLAPSE;
+static uint32_t sysfs_dbg_l2_mode = MSM_SPM_L2_MODE_POWER_COLLAPSE;
 static uint32_t default_l2_mode;
 
 
@@ -1104,11 +1100,7 @@ fail:
 	return -EFAULT;
 }
 
-#ifdef CONFIG_SHITTY_VARIANT
 static struct of_device_id cpu_modes_mtch_tbl[] = {
-#else
-static struct of_device_id cpu_modes_mtch_tbl[] __initdata = {
-#endif
 	{.compatible = "qcom,cpu-modes"},
 	{},
 };
@@ -1122,11 +1114,7 @@ static struct platform_driver cpu_modes_driver = {
 	},
 };
 
-#ifdef CONFIG_SHITTY_VARIANT
 static struct of_device_id system_modes_mtch_tbl[] = {
-#else
-static struct of_device_id system_modes_mtch_tbl[] __initdata = {
-#endif
 	{.compatible = "qcom,system-modes"},
 	{},
 };
@@ -1140,11 +1128,7 @@ static struct platform_driver system_modes_driver = {
 	},
 };
 
-#ifdef CONFIG_SHITTY_VARIANT
 static struct of_device_id lpm_levels_match_table[] = {
-#else
-static struct of_device_id lpm_levels_match_table[] __initdata = {
-#endif
 	{.compatible = "qcom,lpm-levels"},
 	{},
 };

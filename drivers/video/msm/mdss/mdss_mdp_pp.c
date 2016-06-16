@@ -337,6 +337,7 @@ struct mdss_pp_res_type {
 	struct pp_hist_col_info dspp_hist[MDSS_MDP_MAX_DSPP];
 };
 
+#ifdef CONFIG_MACH_LGE
 uint32_t igc_Table_RGB[256] = {
 	4080, 4064, 4048, 4032, 4016, 4000, 3984, 3968, 3952, 3936, 3920, 3904,
 	3888, 3872, 3856, 3840, 3824, 3808, 3792, 3776, 3760, 3744, 3728, 3712,
@@ -364,6 +365,7 @@ uint32_t igc_Table_RGB[256] = {
 int igc_c0_c1[256] = {0,};
 int igc_c2[256] = {0,};
 
+#endif
 static DEFINE_MUTEX(mdss_pp_mutex);
 static struct mdss_pp_res_type *mdss_pp_res;
 

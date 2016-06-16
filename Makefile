@@ -245,8 +245,8 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 
 HOSTCC       = gcc
 HOSTCXX      = g++
-HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer
-HOSTCXXFLAGS = -O2
+HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O3 -fomit-frame-pointer -fgcse-las
+HOSTCXXFLAGS = -O3 -fgcse-las
 
 # Decide whether to build built-in, modular, or both.
 # Normally, just do built-in.
@@ -351,24 +351,24 @@ CC		= $(srctree)/scripts/gcc-wrapper.py $(REAL_CC)
 
 CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 		  -Wbitwise -Wno-return-void $(CF)
-CFLAGS_MODULE   =
-AFLAGS_MODULE   =
-LDFLAGS_MODULE  =
-CFLAGS_KERNEL	=
+
+# fall back to -march=armv7-a in case the compiler isn't compatible with -mcpu and -mtune
+ARM_ARCH_OPT := -mcpu=cortex-a15 -mtune=cortex-a15 -mfpu=neon-vfpv4  
+KERNELFLAGS	 := -munaligned-access -fforce-addr -fsingle-precision-constant \
+                -fgcse-las -fgcse-lm -fgcse-sm -fsched-spec-load -ffast-math \
+                -ftree-vectorize -mvectorize-with-neon-quad -funswitch-loops
+                
+MODFLAGS	:= -DMODULE $(call cc-option,$(ARM_ARCH_OPT),$(KERNLFLAGS),-march=armv7-a)
+GEN_OPT_FLAGS := $(call cc-option,$(ARM_ARCH_OPT),$(KERNLFLAGS),-march=armv7-a) \
+                -DNDEBUG -Wa,-mimplicit-it=always 
+
+CFLAGS_MODULE   = $(MODFLAGS)
+AFLAGS_MODULE   = $(MODFLAGS)
+LDFLAGS_MODULE  = -T $(srctree)/scripts/module-common.lds
+CFLAGS_KERNEL	= $(KERNELFLAGS) -fpredictive-commoning
 AFLAGS_KERNEL	=
 CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 
-# fall back to -march=armv7-a in case the compiler isn't compatible with -mcpu and -mtune
-ARM_ARCH_OPT := -mcpu=cortex-a15 -mtune=cortex-a15
-JCFUNK_OPT  := -fgcse-sm -fgcse-las -fgcse-after-reload -fbranch-target-load-optimize2
-GEN_OPT_FLAGS := $(call cc-option,$(ARM_ARCH_OPT),$(JCFUNK_OPT),-march=armv7-a) \
-        -g0 \
-        -DNDEBUG \
-        -fomit-frame-pointer \
-        -funsafe-math-optimizations \
-	-fmodulo-sched \
-	-fmodulo-sched-allow-regmoves \
-	-fivopts -Wa,-mimplicit-it=always
 
 # Use LINUXINCLUDE when you must reference the include/ directory.
 # Needed to be compatible with the O= option
@@ -383,15 +383,14 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
-		   -fno-delete-null-pointer-checks\
-                   -Wno-unused\
-		   $(GEN_OPT_FLAGS)
+		   -fno-delete-null-pointer-checks \
+		   $(KERNELFLAGS)
 
 KBUILD_AFLAGS_KERNEL := $(GEN_OPT_FLAGS)
 KBUILD_CFLAGS_KERNEL := $(GEN_OPT_FLAGS)
 KBUILD_AFLAGS   := -D__ASSEMBLY__
-KBUILD_AFLAGS_MODULE  := -DMODULE -fno-pic $(GEN_OPT_FLAGS)
-KBUILD_CFLAGS_MODULE  := -DMODULE $(GEN_OPT_FLAGS)
+KBUILD_AFLAGS_MODULE  := -DMODULE $(GEN_OPT_FLAGS)
+KBUILD_CFLAGS_MODULE  := -DMODULE $(GEN_OPT_FLAGS) -fno-pic
 KBUILD_LDFLAGS_MODULE := -T $(srctree)/scripts/module-common.lds
 
 # Read KERNELRELEASE from include/config/kernel.release (if it exists)
@@ -588,12 +587,6 @@ endif
 ifdef CONFIG_CC_OPTIMIZE_FAST
 KBUILD_CFLAGS	+= -Ofast
 endif
-
-#Kept these to test to see if these flags mean anything
-#KBUILD_CFLAGS	+= -Os $(call cc-disable-warning,maybe-uninitialized,)
-#else
-#KBUILD_CFLAGS	+= -O3 $(call cc-disable-warning,maybe-uninitialized) $(call cc-disable-warning,array-bounds)
-#endif
 
 include $(srctree)/arch/$(SRCARCH)/Makefile
 
@@ -1052,12 +1045,6 @@ headerdep:
 	$(srctree)/scripts/headerdep.pl -I$(srctree)/include
 
 # ---------------------------------------------------------------------------
-
-PHONY += depend dep
-depend dep:
-	@echo '*** Warning: make $@ is unnecessary now.'
-
-# ---------------------------------------------------------------------------
 # Firmware install
 INSTALL_FW_PATH=$(INSTALL_MOD_PATH)/lib/firmware
 export INSTALL_FW_PATH
@@ -1257,7 +1244,7 @@ rpm: include/config/kernel.release FORCE
 # ---------------------------------------------------------------------------
 
 boards := $(wildcard $(srctree)/arch/$(SRCARCH)/configs/*_defconfig)
-boards := $(notdir $(boards))
+boards := $(sort $(notdir $(boards)))
 board-dirs := $(dir $(wildcard $(srctree)/arch/$(SRCARCH)/configs/*/*_defconfig))
 board-dirs := $(sort $(notdir $(board-dirs:/=)))
 

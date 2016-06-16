@@ -70,11 +70,7 @@ static struct gpiomux_setting ap2mdm_wakeup = {
 	.dir = GPIOMUX_OUT_LOW,
 };
 
-#ifdef CONFIG_SHITTY_VARIANT
-static struct msm_gpiomux_config mdm_configs[] = {
-#else
 static struct msm_gpiomux_config mdm_configs[] __initdata = {
-#endif
 	/* AP2MDM_STATUS */
 	{
 		.gpio = 105,
@@ -126,7 +122,7 @@ static struct msm_gpiomux_config mdm_configs[] __initdata = {
 	},
 };
 
-static struct gpiomux_setting gpio_uart_config __initdata = {
+static struct gpiomux_setting gpio_uart_config = {
 	.func = GPIOMUX_FUNC_2,
 	.drv = GPIOMUX_DRV_16MA,
 	.pull = GPIOMUX_PULL_NONE,
